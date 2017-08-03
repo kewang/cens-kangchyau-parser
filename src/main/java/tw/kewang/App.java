@@ -1,5 +1,6 @@
 package tw.kewang;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.FileUtils;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -11,8 +12,11 @@ import java.nio.charset.Charset;
 import java.util.ArrayList;
 
 public class App {
+    private static final String TW_URLS[] = {"http://www.kangchyau.com.tw/tw/products_F01.html", "http://www.kangchyau.com.tw/tw/products_F02.html"};
+    private static final String EN_URLS[] = {"http://www.kangchyau.com.tw/en/products.html", "http://www.kangchyau.com.tw/en/products_F02.html"};
+
     public static void main(String[] args) throws Exception {
-        Document doc = Jsoup.connect("http://www.kangchyau.com.tw/en/products.html").get();
+        Document doc = Jsoup.connect(EN_URLS[0]).get();
 
         Elements elements = doc.select(".products_i_list a");
 
@@ -27,6 +31,8 @@ public class App {
         // every product
         for (String url : urls) {
             Model model = new Model();
+
+            model.url = url;
 
             doc = Jsoup.connect(url).get();
 
@@ -48,15 +54,17 @@ public class App {
 
                     for (Element elementItem : elementItems) {
                         if (elementItem.className().equals("td_1")) {
-                            item.key = elementItem.text();
+                            item.key = elementItem.text().trim();
                         } else if (elementItem.className().equals("td_2")) {
-                            item.values.add(elementItem.text());
+                            item.values.add(elementItem.text().trim());
                             item.isTitle = false;
                         } else if (elementItem.className().equals("td_3")) {
-                            item.key = elementItem.text();
-                            item.values = null;
                             item.isTitle = true;
                         }
+                    }
+
+                    if ((item.key == null || item.key.equals("")) && CollectionUtils.isEmpty(item.values) && !item.isTitle) {
+                        continue;
                     }
 
                     model.items.add(item);
@@ -67,6 +75,10 @@ public class App {
         }
 
         for (Model model : models) {
+            if (CollectionUtils.isEmpty(model.productIds) || CollectionUtils.isEmpty(model.items)) {
+                continue;
+            }
+
             StringBuffer sb = new StringBuffer();
 
             sb.append("<table class=\"rwd-table\">\n")
@@ -104,15 +116,18 @@ public class App {
 
                     sb.append("    </tr>\n");
 
-                    sb.append("    <tr class=\"bigsize\">\n").append("        <td data-th=\"");
+                    sb.append("    <tr class=\"bigsize\">\n");
 
                     for (int j = 0; j < model.productIds.size(); j++) {
+                        sb.append("        <td data-th=\"");
+
                         String productId = model.productIds.get(j);
+
                         String value = item.values.get(j);
 
-                        if(model.productIds.size() == 1) {
+                        if (model.productIds.size() == 1) {
                             sb.append(item.key).append("\">").append(value).append("</td>\n");
-                        }else {
+                        } else {
                             sb.append(productId).append("/").append(item.key).append("\">").append(value).append("</td>\n");
                         }
                     }
@@ -139,11 +154,12 @@ public class App {
             sb.append("</table>\n");
             sb.append("* Remark: The above machine specification and production range can be changed without any notice due to kind of different application.");
 
-            FileUtils.writeStringToFile(new File(model.productIds.toString() + ".text"), sb.toString(), Charset.defaultCharset());
+            FileUtils.writeStringToFile(new File(model.productIds.toString() + ".en.text"), sb.toString(), Charset.defaultCharset());
         }
     }
 
     private static class Model {
+        public String url;
         public ArrayList<String> productIds = new ArrayList<String>();
         public ArrayList<Item> items = new ArrayList<Item>();
 
@@ -165,7 +181,8 @@ public class App {
         @Override
         public String toString() {
             return "Model{" +
-                    "productIds=" + productIds +
+                    "url='" + url + '\'' +
+                    ", productIds=" + productIds +
                     ", items=" + items +
                     '}';
         }
