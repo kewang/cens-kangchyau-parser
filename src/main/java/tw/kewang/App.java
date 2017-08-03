@@ -1,10 +1,13 @@
 package tw.kewang;
 
+import org.apache.commons.io.FileUtils;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
+import java.io.File;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 
 public class App {
@@ -63,7 +66,71 @@ public class App {
             models.add(model);
         }
 
-        System.out.println(models);
+        for (Model model : models) {
+            StringBuffer sb = new StringBuffer();
+
+            sb.append("<table class=\"rwd-table\">\n")
+                    .append("    <tr style=\"background-color: #009fb9;\">\n")
+                    .append("        <th style=\"color: #fff;\">MODEL</th>\n");
+
+            for (String productId : model.productIds) {
+                sb.append("<th style=\"color: #fff;\">").append(productId).append("</th>\n");
+            }
+
+            sb.append("</tr>\n").append("    <tr class=\"bigsize\">\n");
+
+            for (String productId : model.productIds) {
+                sb.append("        <td data-th=\"MODEL\">").append(productId).append("</td>\n");
+            }
+
+            sb.append("</tr>\n");
+
+            boolean whiteColor = true;
+            for (int i = 0; i < model.items.size(); i++) {
+                Model.Item item = model.items.get(i);
+
+                if (!item.isTitle) {
+                    if (whiteColor) {
+                        sb.append("    <tr>\n");
+                    } else {
+                        sb.append("    <tr style=\"background-color: #eee;\">\n");
+                    }
+
+                    sb.append("        <th>").append(item.key).append("</th>\n");
+
+                    for (String value : item.values) {
+                        sb.append("        <th>").append(value).append("</th>\n");
+                    }
+
+                    sb.append("    </tr>\n");
+
+                    sb.append("    <tr class=\"bigsize\">").append("        <td data-th=\"");
+
+                    for (int j = 0; j < model.productIds.size(); j++) {
+                        String productId = model.productIds.get(j);
+                        String value = item.values.get(j);
+
+                        sb.append(productId).append("/").append(item.key).append("\">").append(value).append("</td>\n");
+                    }
+
+                    sb.append("    </tr>\n");
+
+                    whiteColor = !whiteColor;
+                } else {
+                    sb.append("    <tr style=\"background-color: #ccc;\">\n")
+                            .append("        <th style=\"color: #009fb9;\" colspan=\"")
+                            .append(model.productIds.size() + 1).append("\">")
+                            .append(item.key)
+                            .append("</th>\n")
+                            .append("    </tr>\n");
+                }
+            }
+
+            sb.append("</table>\n");
+            sb.append("* Remark: The above machine specification and production range can be changed without any notice due to kind of different application.");
+
+            FileUtils.writeStringToFile(new File(model.productIds.toString() + ".text"), sb.toString(), Charset.defaultCharset());
+        }
     }
 
     private static class Model {
