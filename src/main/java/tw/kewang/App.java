@@ -2,6 +2,7 @@ package tw.kewang;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -12,12 +13,15 @@ import java.nio.charset.Charset;
 import java.util.ArrayList;
 
 public class App {
+    private static final boolean DEBUG = false;
     private static final String URLS[] = {"http://www.kangchyau.com.tw/tw/products_F01.html", "http://www.kangchyau.com.tw/tw/products_F02.html", "http://www.kangchyau.com.tw/en/products.html", "http://www.kangchyau.com.tw/en/products_F02.html"};
     private static final String LANGUAGES[] = {"tw", "tw", "en", "en"};
     private static final String WORDS[] = {"機型", "機型", "MODEL", "MODEL"};
     private static final String WORD2S[] = {"*網頁上之圖片及係數只備參考其尺寸，規格，樣式會因客戶人所訂購的配件不同而有所改變", "*網頁上之圖片及係數只備參考其尺寸，規格，樣式會因客戶人所訂購的配件不同而有所改變", "* Remark: The above machine specification and production range can be changed without any notice due to kind of different application.", "* Remark: The above machine specification and production range can be changed without any notice due to kind of different application."};
 
     public static void main(String[] args) throws Exception {
+        long start = System.currentTimeMillis();
+
         for (int k = 0; k < URLS.length; k++) {
             Document doc = Jsoup.connect(URLS[k]).get();
 
@@ -62,16 +66,21 @@ public class App {
                                 item.values.add(elementItem.text().trim());
                                 item.isTitle = false;
                             } else if (elementItem.className().equals("td_3")) {
+                                item.key = elementItem.text().trim();
                                 item.isTitle = true;
                             }
                         }
 
-                        if ((item.key == null || item.key.equals("")) && CollectionUtils.isEmpty(item.values) && !item.isTitle) {
+                        if (StringUtils.isEmpty(item.key) && CollectionUtils.isEmpty(item.values) && !item.isTitle) {
                             continue;
                         }
 
                         model.items.add(item);
                     }
+                }
+
+                if (DEBUG) {
+                    System.out.println(model);
                 }
 
                 models.add(model);
@@ -161,9 +170,13 @@ public class App {
                 sb.append("</table>\n");
                 sb.append(WORD2S[k]);
 
-                FileUtils.writeStringToFile(new File("out/" + model.productIds.toString() + "." + LANGUAGES[k] + ".htm"), sb.toString(), Charset.defaultCharset());
+                FileUtils.writeStringToFile(new File("out/" + model.productIds.toString() + "." + LANGUAGES[k] + ".text"), sb.toString(), Charset.defaultCharset());
             }
         }
+
+        long end = System.currentTimeMillis();
+
+        System.out.println("Times: " + (end - start) + "ms");
     }
 
     private static class Model {
