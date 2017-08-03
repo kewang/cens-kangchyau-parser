@@ -12,149 +12,157 @@ import java.nio.charset.Charset;
 import java.util.ArrayList;
 
 public class App {
-    private static final String TW_URLS[] = {"http://www.kangchyau.com.tw/tw/products_F01.html", "http://www.kangchyau.com.tw/tw/products_F02.html"};
-    private static final String EN_URLS[] = {"http://www.kangchyau.com.tw/en/products.html", "http://www.kangchyau.com.tw/en/products_F02.html"};
+    private static final String URLS[] = {"http://www.kangchyau.com.tw/tw/products_F01.html", "http://www.kangchyau.com.tw/tw/products_F02.html", "http://www.kangchyau.com.tw/en/products.html", "http://www.kangchyau.com.tw/en/products_F02.html"};
+    private static final String LANGUAGES[] = {"tw", "tw", "en", "en"};
+    private static final String WORDS[] = {"機型", "機型", "MODEL", "MODEL"};
+    private static final String WORD2S[] = {"*網頁上之圖片及係數只備參考其尺寸，規格，樣式會因客戶人所訂購的配件不同而有所改變", "*網頁上之圖片及係數只備參考其尺寸，規格，樣式會因客戶人所訂購的配件不同而有所改變", "* Remark: The above machine specification and production range can be changed without any notice due to kind of different application.", "* Remark: The above machine specification and production range can be changed without any notice due to kind of different application."};
 
     public static void main(String[] args) throws Exception {
-        Document doc = Jsoup.connect(EN_URLS[0]).get();
+        for (int k = 0; k < URLS.length; k++) {
+            Document doc = Jsoup.connect(URLS[k]).get();
 
-        Elements elements = doc.select(".products_i_list a");
+            Elements elements = doc.select(".products_i_list a");
 
-        ArrayList<String> urls = new ArrayList<String>();
+            ArrayList<String> urls = new ArrayList<String>();
 
-        for (Element element : elements) {
-            urls.add("http://www.kangchyau.com.tw/en/" + element.attr("href"));
-        }
+            for (Element element : elements) {
+                urls.add("http://www.kangchyau.com.tw/" + LANGUAGES[k] + "/" + element.attr("href"));
+            }
 
-        ArrayList<Model> models = new ArrayList<Model>();
+            ArrayList<Model> models = new ArrayList<Model>();
 
-        // every product
-        for (String url : urls) {
-            Model model = new Model();
+            // every product
+            for (String url : urls) {
+                Model model = new Model();
 
-            model.url = url;
+                model.url = url;
 
-            doc = Jsoup.connect(url).get();
+                doc = Jsoup.connect(url).get();
 
-            elements = doc.select("#spec table tbody tr");
+                elements = doc.select("#spec table tbody tr");
 
-            for (int i = 0; i < elements.size(); i++) {
-                Element element = elements.get(i);
+                for (int i = 0; i < elements.size(); i++) {
+                    Element element = elements.get(i);
 
-                if (i == 0) {
-                    Elements elementProductIds = element.select(".th2");
+                    if (i == 0) {
+                        Elements elementProductIds = element.select(".th2");
 
-                    for (Element elementProductId : elementProductIds) {
-                        model.productIds.add(elementProductId.text());
-                    }
-                } else {
-                    Elements elementItems = element.children();
-
-                    Model.Item item = new Model.Item();
-
-                    for (Element elementItem : elementItems) {
-                        if (elementItem.className().equals("td_1")) {
-                            item.key = elementItem.text().trim();
-                        } else if (elementItem.className().equals("td_2")) {
-                            item.values.add(elementItem.text().trim());
-                            item.isTitle = false;
-                        } else if (elementItem.className().equals("td_3")) {
-                            item.isTitle = true;
+                        for (Element elementProductId : elementProductIds) {
+                            model.productIds.add(elementProductId.text());
                         }
-                    }
-
-                    if ((item.key == null || item.key.equals("")) && CollectionUtils.isEmpty(item.values) && !item.isTitle) {
-                        continue;
-                    }
-
-                    model.items.add(item);
-                }
-            }
-
-            models.add(model);
-        }
-
-        for (Model model : models) {
-            if (CollectionUtils.isEmpty(model.productIds) || CollectionUtils.isEmpty(model.items)) {
-                continue;
-            }
-
-            StringBuffer sb = new StringBuffer();
-
-            sb.append("<table class=\"rwd-table\">\n")
-                    .append("    <tr style=\"background-color: #009fb9;\">\n")
-                    .append("        <th style=\"color: #fff;\">MODEL</th>\n");
-
-            for (String productId : model.productIds) {
-                sb.append("<th style=\"color: #fff;\">").append(productId).append("</th>\n");
-            }
-
-            sb.append("</tr>\n").append("    <tr class=\"bigsize\">\n");
-
-            for (String productId : model.productIds) {
-                sb.append("        <td data-th=\"MODEL\">").append(productId).append("</td>\n");
-            }
-
-            sb.append("</tr>\n");
-
-            boolean whiteColor = true;
-            for (int i = 0; i < model.items.size(); i++) {
-                Model.Item item = model.items.get(i);
-
-                if (!item.isTitle) {
-                    if (whiteColor) {
-                        sb.append("    <tr>\n");
                     } else {
-                        sb.append("    <tr style=\"background-color: #eee;\">\n");
-                    }
+                        Elements elementItems = element.children();
 
-                    sb.append("        <th>").append(item.key).append("</th>\n");
+                        Model.Item item = new Model.Item();
 
-                    for (String value : item.values) {
-                        sb.append("        <th>").append(value).append("</th>\n");
-                    }
-
-                    sb.append("    </tr>\n");
-
-                    sb.append("    <tr class=\"bigsize\">\n");
-
-                    for (int j = 0; j < model.productIds.size(); j++) {
-                        sb.append("        <td data-th=\"");
-
-                        String productId = model.productIds.get(j);
-
-                        String value = item.values.get(j);
-
-                        if (model.productIds.size() == 1) {
-                            sb.append(item.key).append("\">").append(value).append("</td>\n");
-                        } else {
-                            sb.append(productId).append("/").append(item.key).append("\">").append(value).append("</td>\n");
+                        for (Element elementItem : elementItems) {
+                            if (elementItem.className().equals("td_1")) {
+                                item.key = elementItem.text().trim();
+                            } else if (elementItem.className().equals("td_2")) {
+                                item.values.add(elementItem.text().trim());
+                                item.isTitle = false;
+                            } else if (elementItem.className().equals("td_3")) {
+                                item.isTitle = true;
+                            }
                         }
+
+                        if ((item.key == null || item.key.equals("")) && CollectionUtils.isEmpty(item.values) && !item.isTitle) {
+                            continue;
+                        }
+
+                        model.items.add(item);
                     }
-
-                    sb.append("    </tr>\n");
-
-                    whiteColor = !whiteColor;
-                } else {
-                    sb.append("    <tr style=\"background-color: #ccc;\">\n")
-                            .append("        <th style=\"color: #009fb9;\" colspan=\"")
-                            .append(model.productIds.size() + 1).append("\">")
-                            .append(item.key)
-                            .append("</th>\n")
-                            .append("    </tr>\n");
-
-                    sb.append("    <tr class=\"bigsize\">\n")
-                            .append("        <td class=\"colon\" data-th=\"")
-                            .append(item.key)
-                            .append("\"></td>\n")
-                            .append("    </tr>\n");
                 }
+
+                models.add(model);
             }
 
-            sb.append("</table>\n");
-            sb.append("* Remark: The above machine specification and production range can be changed without any notice due to kind of different application.");
+            for (Model model : models) {
+                if (CollectionUtils.isEmpty(model.productIds) || CollectionUtils.isEmpty(model.items)) {
+                    continue;
+                }
 
-            FileUtils.writeStringToFile(new File(model.productIds.toString() + ".en.text"), sb.toString(), Charset.defaultCharset());
+                StringBuffer sb = new StringBuffer();
+
+                sb.append("<table class=\"rwd-table\">\n")
+                        .append("    <tr style=\"background-color: #009fb9;\">\n")
+                        .append("        <th style=\"color: #fff;\">")
+                        .append(WORDS[k])
+                        .append("</th>\n");
+
+                for (String productId : model.productIds) {
+                    sb.append("        <th style=\"color: #fff;\">").append(productId).append("</th>\n");
+                }
+
+                sb.append("    </tr>\n").append("    <tr class=\"bigsize\">\n");
+
+                for (String productId : model.productIds) {
+                    sb.append("        <td data-th=\"")
+                            .append(WORDS[k])
+                            .append("\">").append(productId).append("</td>\n");
+                }
+
+                sb.append("    </tr>\n");
+
+                boolean whiteColor = true;
+                for (int i = 0; i < model.items.size(); i++) {
+                    Model.Item item = model.items.get(i);
+
+                    if (!item.isTitle) {
+                        if (whiteColor) {
+                            sb.append("    <tr>\n");
+                        } else {
+                            sb.append("    <tr style=\"background-color: #eee;\">\n");
+                        }
+
+                        sb.append("        <th>").append(item.key).append("</th>\n");
+
+                        for (String value : item.values) {
+                            sb.append("        <th>").append(value).append("</th>\n");
+                        }
+
+                        sb.append("    </tr>\n");
+
+                        sb.append("    <tr class=\"bigsize\">\n");
+
+                        for (int j = 0; j < model.productIds.size(); j++) {
+                            sb.append("        <td data-th=\"");
+
+                            String productId = model.productIds.get(j);
+
+                            String value = item.values.get(j);
+
+                            if (model.productIds.size() == 1) {
+                                sb.append(item.key).append("\">").append(value).append("</td>\n");
+                            } else {
+                                sb.append(productId).append("/").append(item.key).append("\">").append(value).append("</td>\n");
+                            }
+                        }
+
+                        sb.append("    </tr>\n");
+
+                        whiteColor = !whiteColor;
+                    } else {
+                        sb.append("    <tr style=\"background-color: #ccc;\">\n")
+                                .append("        <th style=\"color: #009fb9;\" colspan=\"")
+                                .append(model.productIds.size() + 1).append("\">")
+                                .append(item.key)
+                                .append("</th>\n")
+                                .append("    </tr>\n");
+
+                        sb.append("    <tr class=\"bigsize\">\n")
+                                .append("        <td class=\"colon\" data-th=\"")
+                                .append(item.key)
+                                .append("\"></td>\n")
+                                .append("    </tr>\n");
+                    }
+                }
+
+                sb.append("</table>\n");
+                sb.append(WORD2S[k]);
+
+                FileUtils.writeStringToFile(new File("out/" + model.productIds.toString() + "." + LANGUAGES[k] + ".htm"), sb.toString(), Charset.defaultCharset());
+            }
         }
     }
 
