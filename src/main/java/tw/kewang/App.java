@@ -104,13 +104,17 @@ public class App {
 
                     sb.append("    </tr>\n");
 
-                    sb.append("    <tr class=\"bigsize\">").append("        <td data-th=\"");
+                    sb.append("    <tr class=\"bigsize\">\n").append("        <td data-th=\"");
 
                     for (int j = 0; j < model.productIds.size(); j++) {
                         String productId = model.productIds.get(j);
                         String value = item.values.get(j);
 
-                        sb.append(productId).append("/").append(item.key).append("\">").append(value).append("</td>\n");
+                        if(model.productIds.size() == 1) {
+                            sb.append(item.key).append("\">").append(value).append("</td>\n");
+                        }else {
+                            sb.append(productId).append("/").append(item.key).append("\">").append(value).append("</td>\n");
+                        }
                     }
 
                     sb.append("    </tr>\n");
@@ -122,6 +126,12 @@ public class App {
                             .append(model.productIds.size() + 1).append("\">")
                             .append(item.key)
                             .append("</th>\n")
+                            .append("    </tr>\n");
+
+                    sb.append("    <tr class=\"bigsize\">\n")
+                            .append("        <td class=\"colon\" data-th=\"")
+                            .append(item.key)
+                            .append("\"></td>\n")
                             .append("    </tr>\n");
                 }
             }
